@@ -7,8 +7,10 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// ErrToStatusMapperFunc represents function which maps error to grpc status
 type ErrToStatusMapperFunc func(err error) *status.Status
 
+// ServerUnaryInterceptor unary server interceptor for error to grpc status mapping
 func ServerUnaryInterceptor(mapper ErrToStatusMapperFunc) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		res, err := handler(ctx, req)
@@ -21,20 +23,5 @@ func ServerUnaryInterceptor(mapper ErrToStatusMapperFunc) grpc.UnaryServerInterc
 		}
 
 		return nil, mapper(err).Err()
-	}
-}
-
-func ServerStreamInterceptor(mapper ErrToStatusMapperFunc) grpc.StreamServerInterceptor {
-	return func(srv any, ss grpc.ServerStream, _ *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		err := handler(srv, ss)
-		if err == nil {
-			return nil
-		}
-
-		if _, ok := status.FromError(err); ok {
-			return err
-		}
-
-		return mapper(err).Err()
 	}
 }
